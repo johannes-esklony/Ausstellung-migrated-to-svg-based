@@ -2,17 +2,19 @@ var main_view;
 var ob = new Array();
 var ob_urls = new Array();
 svg = document.getElementById("main_view");
+
+
 window.onload = function () {
     setViewbox();
     get_urls();
-    setInterval(update, 1);
+    //setInterval(update, 1);
 }
 window.onresize = setViewbox;
 
 window.addEventListener("deviceorientation", setViewbox, true);
 
 function setViewbox() {
-    _vb = xLeft + " " + yUpper + " " + vWidth + " " + vHeight;
+    var _vb = xLeft + " " + yUpper + " " + vWidth + " " + vHeight;
     document.getElementById("main_view").setAttribute("viewBox", _vb);
 
     app.height = window.innerHeight;
@@ -53,6 +55,8 @@ yUpper = 0;
 vWidth = window.innerWidth;
 vHeight = window.innerHeight;
 var isPanning = false;
+
+
 //zoom/drag
 {
     mouseX = 0;
@@ -60,21 +64,24 @@ var isPanning = false;
     var scale = 1;
 
 
+    const svgImage = svg;
+    const svgContainer = window;
+
+    var viewBox = { x: 0, y: 0, w: svgImage.clientWidth, h: svgImage.clientHeight };
+    svgImage.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
+    const svgSize = { w: svgImage.clientWidth, h: svgImage.clientHeight };
+    var lastPoint = { x: 0, y: 0 };
+    var endPoint = { x: 0, y: 0 };;
+    var dragged = false;
+
+    var _firstcalldrag = true;
+    var _firstcallzoom = true;
+
     (function () {
+        var targetWasImage = false;
         window.addEventListener("wheel", e => {
             e.preventDefault();//prevent zoom
         }, { passive: false });
-
-
-        const svgImage = svg;
-        const svgContainer = window;
-
-        var viewBox = { x: 0, y: 0, w: svgImage.clientWidth, h: svgImage.clientHeight };
-        svgImage.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
-        const svgSize = { w: svgImage.clientWidth, h: svgImage.clientHeight };
-        var startPoint = { x: 0, y: 0 };
-        var endPoint = { x: 0, y: 0 };;
-        drag = false;
 
         window.onwheel = function (e) {
             var w = viewBox.w;
@@ -97,58 +104,86 @@ var isPanning = false;
 
         svg.onmousedown = function (e) {
             isPanning = true;
-            drag = false
-            startPoint = { x: e.x, y: e.y };
+            lastPoint = { x: e.x, y: e.y };
+            _firstcallzoom = true;
+            _firstcalldrag = true;
+            if(e.target.tagName == "image"){
+                targetWasImage = true;
+            }else{
+                targetWasImage = false;
+            }
         }
 
         svg.onmousemove = function (e) {
-            if (isPanning) {
+            if (isPanning && !targetWasImage) {
                 endPoint = { x: e.x, y: e.y };
-                var dx = (startPoint.x - endPoint.x) / scale;
-                var dy = (startPoint.y - endPoint.y) / scale;
-                if (dx != 0 || dy != 0) {
-                    drag = true;
+                if (!_firstcalldrag) {
+                    var dx = (lastPoint.x - endPoint.x) / scale;
+                    var dy = (lastPoint.y - endPoint.y) / scale;
+                    if (dx != 0 || dy != 0) {
+                        dragged = true;
+                    }
+                    viewBox = { x: viewBox.x + dx, y: viewBox.y + dy, w: viewBox.w, h: viewBox.h };
+                    xLeft = viewBox.x
+                    yUpper = viewBox.y
+                    vWidth = viewBox.w
+                    vHeight = viewBox.h
+                    svgImage.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
                 }
-                var movedViewBox = { x: viewBox.x + dx, y: viewBox.y + dy, w: viewBox.w, h: viewBox.h };
-                xLeft = movedViewBox.x
-                yUpper = movedViewBox.y
-                vWidth = movedViewBox.w
-                vHeight = movedViewBox.h
-                svgImage.setAttribute('viewBox', `${movedViewBox.x} ${movedViewBox.y} ${movedViewBox.w} ${movedViewBox.h}`);
+                lastPoint = endPoint;
+                _firstcalldrag = false;
+                _firstcallzoom = true;
             }
         }
 
         svg.onmouseup = function (e) {
             if (isPanning) {
                 endPoint = { x: e.x, y: e.y };
-                var dx = (startPoint.x - endPoint.x) / scale;
-                var dy = (startPoint.y - endPoint.y) / scale;
-                viewBox = { x: viewBox.x + dx, y: viewBox.y + dy, w: viewBox.w, h: viewBox.h };
-                xLeft = viewBox.x
-                yUpper = viewBox.y
-                vWidth = viewBox.w
-                vHeight = viewBox.h
-                svgImage.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
+                if (!_firstcalldrag) {
+                    var dx = (lastPoint.x - endPoint.x) / scale;
+                    var dy = (lastPoint.y - endPoint.y) / scale;
+                    if (dx != 0 || dy != 0) {
+                        dragged = true;
+                    }
+                    viewBox = { x: viewBox.x + dx, y: viewBox.y + dy, w: viewBox.w, h: viewBox.h };
+                    xLeft = viewBox.x
+                    yUpper = viewBox.y
+                    vWidth = viewBox.w
+                    vHeight = viewBox.h
+                    svgImage.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
+                }
+                lastPoint = endPoint;
+                _firstcalldrag = false;
+                _firstcallzoom = true;
                 isPanning = false;
-                setTimeout(function () { drag = false }, 10);
+                setTimeout(function (){dragged = false}, 10);
             }
         }
 
         svg.onmouseleave = function (e) {
             if (isPanning) {
                 endPoint = { x: e.x, y: e.y };
-                var dx = (startPoint.x - endPoint.x) / scale;
-                var dy = (startPoint.y - endPoint.y) / scale;
-                viewBox = { x: viewBox.x + dx, y: viewBox.y + dy, w: viewBox.w, h: viewBox.h };
-                xLeft = viewBox.x
-                yUpper = viewBox.y
-                vWidth = viewBox.w
-                vHeight = viewBox.h
-                svgImage.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
+                if (!_firstcalldrag) {
+                    var dx = (lastPoint.x - endPoint.x) / scale;
+                    var dy = (lastPoint.y - endPoint.y) / scale;
+                    if (dx != 0 || dy != 0) {
+                        dragged = true;
+                    }
+                    viewBox = { x: viewBox.x + dx, y: viewBox.y + dy, w: viewBox.w, h: viewBox.h };
+                    xLeft = viewBox.x
+                    yUpper = viewBox.y
+                    vWidth = viewBox.w
+                    vHeight = viewBox.h
+                    svgImage.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
+                }
+                lastPoint = endPoint;
+                _firstcalldrag = false;
+                _firstcallzoom = true;
                 isPanning = false;
-                drag = false
+                setTimeout(function (){dragged = false}, 10);
             }
         }
+
     })();
 
     /*ondrag: null
@@ -213,47 +248,31 @@ var isPanning = false;
 
     (function () {
 
-        const svgImage = svg;
-        const svgContainer = window;
-
-        var viewBox = { x: 0, y: 0, w: svgImage.clientWidth, h: svgImage.clientHeight };
-        svgImage.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
-        const svgSize = { w: svgImage.clientWidth, h: svgImage.clientHeight };
-        var startPoint = { x: 0, y: 0 };
-        var endPoint = { x: 0, y: 0 };;
-        drag = false;
-
-        var _firstcallzoom = true;
-        var moved = false;
-
-
 
         svg.ontouchstart = function (e) {
-            isPanning = true;
-            drag = false
-            startPoint = { x: e.touches.item(0).clientX, y: e.touches.item(0).clientY };
+            lastPoint = { x: e.touches.item(0).clientX, y: e.touches.item(0).clientY };
             _firstcallzoom = true;
+            _firstcalldrag = true;
         }
-
         svg.ontouchmove = function (e) {
             e.preventDefault();
-            if (e.touches.length == 1 && _firstcallzoom) {
-                if (isPanning) {
-                    endPoint = { x: e.touches.item(0).clientX, y: e.touches.item(0).clientY };
-                    var dx = (startPoint.x - endPoint.x) / scale;
-                    var dy = (startPoint.y - endPoint.y) / scale;
-                    if (dx != 0 || dy != 0) {
-                        drag = true;
-                    }
-                    var movedViewBox = { x: viewBox.x + dx, y: viewBox.y + dy, w: viewBox.w, h: viewBox.h };
-                    xLeft = movedViewBox.x
-                    yUpper = movedViewBox.y
-                    vWidth = movedViewBox.w
-                    vHeight = movedViewBox.h
-                    svgImage.setAttribute('viewBox', `${movedViewBox.x} ${movedViewBox.y} ${movedViewBox.w} ${movedViewBox.h}`);
+            if (e.touches.length == 1) {
+                endPoint = { x: e.touches.item(0).clientX, y: e.touches.item(0).clientY };
+                if (!_firstcalldrag) {
+                    var dx = (lastPoint.x - endPoint.x) / scale;
+                    var dy = (lastPoint.y - endPoint.y) / scale;
+                    viewBox = { x: viewBox.x + dx, y: viewBox.y + dy, w: viewBox.w, h: viewBox.h };
+                    xLeft = viewBox.x
+                    yUpper = viewBox.y
+                    vWidth = viewBox.w
+                    vHeight = viewBox.h
+                    svgImage.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
                 }
+                lastPoint = endPoint;
+                _firstcalldrag = false;
+                _firstcallzoom = true;
             }
-            if (e.touches.length == 2) {
+            else if (e.touches.length == 2) {
                 var deltaX1, deltaX2, deltaY1, deltaY2;
 
                 var leftX, rightX, upperY, lowerY;
@@ -278,8 +297,7 @@ var isPanning = false;
 
                     deltaX2 = _lastxright - rightX;
                     deltaY2 = _lastylower - lowerY;
-                    var delta = ((deltaX1 - deltaX2) + (deltaY1 - deltaY2)) * .002;
-
+                    var delta = ((deltaX1 - deltaX2) + (deltaY1 - deltaY2)) * .01;
 
                     var midX, midY;
                     midX = leftX + ((rightX - leftX) / 2);
@@ -307,43 +325,32 @@ var isPanning = false;
                 _lastxright = rightX;
                 _lastylower = lowerY;
                 _firstcallzoom = false;
+                _firstcalldrag = true;
             }
         }
 
 
 
         svg.ontouchend = function (e) {
-            if (isPanning && drag) {
-                endPoint = { x: e.changedTouches.item(0).clientX, y: e.changedTouches.item(0).clientY};
-                var dx = (startPoint.x - endPoint.x) / scale;
-                var dy = (startPoint.y - endPoint.y) / scale;
-                viewBox = { x: viewBox.x + dx, y: viewBox.y + dy, w: viewBox.w, h: viewBox.h };
-                xLeft = viewBox.x
-                yUpper = viewBox.y
-                vWidth = viewBox.w
-                vHeight = viewBox.h
-                svgImage.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
-                isPanning = false;
-                setTimeout(function () { drag = false }, 10);
-            }
+
         }
 
         svg.ontouchcancel = function (e) {
-            if (isPanning && drag) {
-                endPoint = { x: e.changedTouches.item(0).clientX, y: e.changedTouches.item(0).clientY };
-                var dx = (startPoint.x - endPoint.x) / scale;
-                var dy = (startPoint.y - endPoint.y) / scale;
-                viewBox = { x: viewBox.x + dx, y: viewBox.y + dy, w: viewBox.w, h: viewBox.h };
-                xLeft = viewBox.x
-                yUpper = viewBox.y
-                vWidth = viewBox.w
-                vHeight = viewBox.h
-                svgImage.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
-                isPanning = false;
-                drag = false
-            }
+
         }
     })();
+
+
+}
+function handleClick(event) {
+    if (!dragged && !isPanning) {
+        var targeturl = event.target.href.baseVal;
+        var p = document.location.href;
+        while (p.slice(-1) != "/") {
+            p = p.slice(0, -1);
+        }
+        document.location = p + "exhibitview.php?target=" + targeturl;
+    }
 }
 
 
@@ -401,17 +408,6 @@ function load_objects() {
     }
 
 }
-function handleClick(event) {
-    if (!drag) {
-        var targeturl = event.target.href.baseVal;
-        var p = document.location.href;
-        while (p.slice(-1) != "/") {
-            p = p.slice(0, -1);
-        }
-        document.location = p + "exhibitview.php?target=" + targeturl;
-    }
-}
-
 
 class App {
     constructor() {
