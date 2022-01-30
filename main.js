@@ -28,16 +28,28 @@ function setViewbox() {
 
 }
 
-
+var isFullscreen = false;
 {
     var elem = document.documentElement;
     function openFullscreen() {
-        if (elem.requestFullscreen) {
-            elem.requestFullscreen();
-        } else if (elem.webkitRequestFullscreen) { /* Safari */
-            elem.webkitRequestFullscreen();
-        } else if (elem.msRequestFullscreen) { /* IE11 */
-            elem.msRequestFullscreen();
+        if (isFullscreen) {
+            isFullscreen = false;
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) { /* Safari */
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) { /* IE11 */
+                document.msExitFullscreen();
+            }
+        } else {
+            isFullscreen = true;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen();
+            } else if (elem.webkitRequestFullscreen) { /* Safari */
+                elem.webkitRequestFullscreen();
+            } else if (elem.msRequestFullscreen) { /* IE11 */
+                elem.msRequestFullscreen();
+            }
         }
     }
 }
@@ -80,7 +92,7 @@ var isPanning = false;
     (function () {
         var targetWasImage = false;
         window.addEventListener("wheel", e => {
-            e.preventDefault();//prevent zoom
+            //e.preventDefault();//prevent zoom
         }, { passive: false });
 
         window.onwheel = function (e) {
@@ -107,9 +119,9 @@ var isPanning = false;
             lastPoint = { x: e.x, y: e.y };
             _firstcallzoom = true;
             _firstcalldrag = true;
-            if(e.target.tagName == "image"){
+            if (e.target.tagName == "image") {
                 targetWasImage = true;
-            }else{
+            } else {
                 targetWasImage = false;
             }
         }
@@ -156,7 +168,7 @@ var isPanning = false;
                 _firstcalldrag = false;
                 _firstcallzoom = true;
                 isPanning = false;
-                setTimeout(function (){dragged = false}, 10);
+                setTimeout(function () { dragged = false }, 10);
             }
         }
 
@@ -180,7 +192,7 @@ var isPanning = false;
                 _firstcalldrag = false;
                 _firstcallzoom = true;
                 isPanning = false;
-                setTimeout(function (){dragged = false}, 10);
+                setTimeout(function () { dragged = false }, 10);
             }
         }
 
@@ -349,7 +361,7 @@ function handleClick(event) {
         while (p.slice(-1) != "/") {
             p = p.slice(0, -1);
         }
-        document.location = p + "exhibitview.php?target=" + targeturl;
+        document.location = p + "exhibitview.php?target=" + targeturl + "&isFullscreen=" + isFullscreen;
     }
 }
 
