@@ -1,6 +1,6 @@
 body{
     margin: 0;
-    background: rgba(80, 79, 97, 0.5);
+    background: rgb(255, 255, 255);
 }
 @media only screen and (max-width: 600px) {
     .searchBox{
