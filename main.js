@@ -92,7 +92,7 @@ var isPanning = false;
     (function () {
         var targetWasImage = false;
         window.addEventListener("wheel", e => {
-            //e.preventDefault();//prevent zoom
+            e.preventDefault();//prevent zoom
         }, { passive: false });
 
         window.onwheel = function (e) {
