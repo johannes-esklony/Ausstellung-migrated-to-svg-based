@@ -7,10 +7,30 @@ svg = document.getElementById("main_view");
 window.onload = function () {
     setViewbox();
     get_urls();
+    setTimeout(checkLoadStatus, 10);
     //setInterval(update, 1);
 }
 window.onresize = setViewbox;
+function checkLoadStatus() {
+    var loadedImg = 0;
+    for (i in ob) {
+        if (ob[i].isLoaded) {
+            loadedImg++;
+        }
+    }
+    if (loadedImg == ob.length) {
+        document.getElementById("lt").textContent = "loaded " + loadedImg + " of " + ob.length + " images";
+        var o = document.getElementsByClassName("exhibit");
+        for (i in o) {
+            o.item(i).setAttribute("visibility", "visible");
+        }
 
+    } else {
+        document.getElementById("lt").textContent = "loaded " + loadedImg + " of " + ob.length + " images";
+        setTimeout(checkLoadStatus, 10);
+
+    }
+}
 window.addEventListener("deviceorientation", setViewbox, true);
 
 function setViewbox() {
@@ -92,7 +112,7 @@ var isPanning = false;
     (function () {
         var targetWasImage = false;
         window.addEventListener("wheel", e => {
-            e.preventDefault();//prevent zoom
+            //e.preventDefault();//prevent zoom
         }, { passive: false });
 
         window.onwheel = function (e) {
@@ -399,26 +419,20 @@ function get_urls() {
     }
     //static, if on local machine (due to missing(differently formatted) autoindex)
     else {
-        ob_urls = ["1.png"];
+        ob_urls = ["1.JPG", "2.JPG", "3.JPG", "4.jpg", "5.JPG", "6.JPG", "7.jpg"];
         load_objects();
     }
 }
 
 function load_objects() {
     //fill array
-    for (i in ob_urls) {
+    for (var i in ob_urls) {
         ob.push(new App_Object(ob_urls[i], i));
-        var svgimg = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-        svgimg.setAttributeNS(null, 'height', ob[i].scaledStandardHeight);
-        svgimg.setAttributeNS(null, 'width', ob[i].scaledStandardWidth);
-        svgimg.setAttributeNS('http://www.w3.org/1999/xlink', 'href', ob[i].path);
-        svgimg.setAttributeNS(null, 'x', ob[i].x);
-        svgimg.setAttributeNS(null, 'y', ob[i].y);
-        svgimg.setAttributeNS(null, 'visibility', 'visible');
-        svgimg.setAttributeNS(null, 'onclick', "handleClick(event)")
-        document.getElementById('main_view').append(svgimg);
     }
+    for(i in ob){
+        ob[i].loadImage();
 
+    }
 }
 
 class App {
@@ -428,10 +442,6 @@ class App {
 
         this.lastheight = this.height;
         this.lastwidth = this.width;
-
-        //this.bg = new Image();
-
-        //this.bg.src = "room.jpg";
 
     }
 
@@ -451,29 +461,30 @@ var app = new App();
 
 class App_Object {
     constructor(path, id) {
+        this.isLoaded = false;
         this.id = id;
         this.path = "img/" + path;
-        this.img = new Image();
-        this.img.src = this.path;
         this.width;
-        this.getWidth(
-            this.path,
-            function (width) { ob[id].width = width; }
-        );
-        this.height;
-        this.getHeight(
-            this.path,
-            function (height) { ob[id].height = height; }
-        );
+        //this.getWidth(
+        //    this.path,
+        //    function (width) { ob[id].width = width; }
+        //);
+        //this.height;
+        //this.getHeight(
+        //    this.path,
+        //    function (height) { ob[id].height = height; }
+        //);
 
         this.x = Math.floor(Math.random() * window.app.width);
         this.y = Math.floor(Math.random() * window.app.height);
 
 
         this.scaledStandardWidth = 100;
-        this.scaledStandardHeight = 100;
+        //this.scaledStandardHeight = 100;
 
         this.rotation = 0.1;
+
+
     }
     getHeight(url, callback) {
         var img = new Image();
@@ -502,6 +513,27 @@ class App_Object {
         this.y = y;
     }
 
+    loadImage() {
+        //init svgimg
+        var svgimg = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+
+        svgimg.setAttributeNS(null, 'height', this.scaledStandardHeight);
+        svgimg.setAttributeNS(null, 'width', this.scaledStandardWidth);
+        svgimg.setAttributeNS(null, 'x', this.x);
+        svgimg.setAttributeNS(null, 'y', this.y);
+        svgimg.setAttributeNS(null, 'visibility', 'hidden');
+        svgimg.setAttributeNS(null, 'onclick', "handleClick(event)");
+        svgimg.setAttributeNS(null, 'class', "exhibit");
+        var id = this.id;
+        svgimg.onload = function (e) {
+            ob[id].isLoaded = true;
+            ob[id].width = this.width;
+            ob[id].height = this.height;
+        };
+        svgimg.setAttributeNS('http://www.w3.org/1999/xlink', 'href', this.path);
+        this.svgimg = svgimg;
+        document.getElementById('main_view').append(this.svgimg);
+    }
 
 };
 
