@@ -24,6 +24,7 @@ function checkLoadStatus() {
         for (i in o) {
             o.item(i).setAttribute("visibility", "visible");
         }
+        setTimeout(function(){document.getElementById("loadingScreen").setAttribute("style", "display:none");}, 1000);
 
     } else {
         document.getElementById("lt").textContent = "loaded " + loadedImg + " of " + ob.length + " images";
@@ -112,24 +113,26 @@ var isPanning = false;
     (function () {
         var targetWasImage = false;
         window.addEventListener("wheel", e => {
-            //e.preventDefault();//prevent zoom
+            e.preventDefault();//prevent zoom
         }, { passive: false });
 
         window.onwheel = function (e) {
+            scale -= e.deltaY* 0.005 * scale;
+
+            restrictZoom();
             var w = viewBox.w;
             var h = viewBox.h;
             var mx = mouseX;//mouse x  
             var my = mouseY;
-            var dw = w * e.deltaY * 0.005;
-            var dh = h * e.deltaY * 0.005;
-            var dx = dw * mx / svgSize.w;
-            var dy = dh * my / svgSize.h;
-            viewBox = { x: viewBox.x + dx, y: viewBox.y + dy, w: viewBox.w - dw, h: viewBox.h - dh };
+            var dw = app.width * scale;
+            var dh = app.height * scale;
+            var dx = viewBox.x + mx * scale; // last x + ratio *
+            var dy = viewBox.y + my * scale;
+            viewBox = { x: dx, y: dy, w: dw, h: dh };
             xLeft = viewBox.x
             yUpper = viewBox.y
             vWidth = viewBox.w
             vHeight = viewBox.h
-            scale = svgSize.w / viewBox.w;
             svgImage.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
         }
 
@@ -330,11 +333,11 @@ var isPanning = false;
                     deltaX2 = _lastxright - rightX;
                     deltaY2 = _lastylower - lowerY;
                     var delta = ((deltaX1 - deltaX2) + (deltaY1 - deltaY2)) * .01;
-
+                    
                     var midX, midY;
                     midX = leftX + ((rightX - leftX) / 2);
                     midY = upperY + ((lowerY - upperY) / 2);
-
+                    
                     var w = viewBox.w;
                     var h = viewBox.h;
                     var mx = midX;//mouse x  
@@ -343,12 +346,13 @@ var isPanning = false;
                     var dh = h * delta;
                     var dx = dw * mx / svgSize.w;
                     var dy = dh * my / svgSize.h;
+                    scale = svgSize.w / viewBox.w;
+                    restrictZoom();
                     viewBox = { x: viewBox.x + dx, y: viewBox.y + dy, w: viewBox.w - dw, h: viewBox.h - dh };
                     xLeft = viewBox.x
                     yUpper = viewBox.y
                     vWidth = viewBox.w
                     vHeight = viewBox.h
-                    scale = svgSize.w / viewBox.w;
                     svgImage.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
                 }
                 _lastxleft = leftX;
@@ -373,6 +377,15 @@ var isPanning = false;
     })();
 
 
+    function restrictZoom(){
+        //scale > 0.0001; scale < 2000
+        if(scale < 0.0001){
+            scale = 0.0001;
+        }
+        if (scale > 300){
+            scale = 300;
+        }
+    }
 }
 function handleClick(event) {
     if (!dragged && !isPanning) {
@@ -429,10 +442,7 @@ function load_objects() {
     for (var i in ob_urls) {
         ob.push(new App_Object(ob_urls[i], i));
     }
-    for(i in ob){
-        ob[i].loadImage();
 
-    }
 }
 
 class App {
@@ -464,23 +474,26 @@ class App_Object {
         this.isLoaded = false;
         this.id = id;
         this.path = "img/" + path;
+        this.img = new Image();
+        
         this.width;
-        //this.getWidth(
-        //    this.path,
-        //    function (width) { ob[id].width = width; }
-        //);
-        //this.height;
-        //this.getHeight(
-        //    this.path,
-        //    function (height) { ob[id].height = height; }
-        //);
+        this.height;
+        
+        this.img.onload = function () {
+            ob[id].isLoaded = true;       
+            ob[id].loadImage();
+
+            ob[id].width = this.width;
+            ob[id].height = this.height;
+        };
+        this.img.src = this.path;
 
         this.x = Math.floor(Math.random() * window.app.width);
         this.y = Math.floor(Math.random() * window.app.height);
 
 
         this.scaledStandardWidth = 100;
-        //this.scaledStandardHeight = 100;
+        this.scaledStandardHeight = 100;
 
         this.rotation = 0.1;
 
@@ -524,12 +537,7 @@ class App_Object {
         svgimg.setAttributeNS(null, 'visibility', 'hidden');
         svgimg.setAttributeNS(null, 'onclick', "handleClick(event)");
         svgimg.setAttributeNS(null, 'class', "exhibit");
-        var id = this.id;
-        svgimg.onload = function (e) {
-            ob[id].isLoaded = true;
-            ob[id].width = this.width;
-            ob[id].height = this.height;
-        };
+
         svgimg.setAttributeNS('http://www.w3.org/1999/xlink', 'href', this.path);
         this.svgimg = svgimg;
         document.getElementById('main_view').append(this.svgimg);
